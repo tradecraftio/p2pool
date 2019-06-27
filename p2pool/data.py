@@ -106,6 +106,7 @@ class BaseShare(object):
                 ('nonce', pack.IntType(32)),
                 ('pubkey_hash', pack.IntType(160)),
                 ('subsidy', pack.IntType(64)),
+                ('locktime', pack.IntType(32)),
                 ('donation', pack.IntType(16)),
                 ('stale_info', pack.EnumType(pack.IntType(8), dict((k, {0: None, 253: 'orphan', 254: 'doa'}.get(k, 'unk%i' % (k,))) for k in xrange(256)))),
                 ('desired_version', pack.VarIntType()),
@@ -409,7 +410,7 @@ class BaseShare(object):
                 n.add(tx_count)
         assert n == set(range(len(self.share_info['new_transaction_hashes'])))
 
-        suffix = pack.IntType(64).pack(self.contents['last_txout_nonce']) + pack.IntType(32).pack(0)
+        suffix = pack.IntType(64).pack(self.contents['last_txout_nonce']) + pack.IntType(32).pack(self.share_data['locktime'])
         if ref_height:
             suffix = suffix + pack.IntType(32).pack(ref_height)
 
