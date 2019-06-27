@@ -393,8 +393,8 @@ class WorkerBridge(worker_interface.WorkerBridge):
             version=max(self.current_work.value['version'], 0x20000000),
             previous_block=self.current_work.value['previous_block'],
             merkle_link=merkle_link,
-            coinb1=packed_gentx[:-self.COINBASE_NONCE_LENGTH-4],
-            coinb2=packed_gentx[-4:],
+            coinb1=packed_gentx[:-self.COINBASE_NONCE_LENGTH-4-4],
+            coinb2=packed_gentx[-4-4:],
             timestamp=self.current_work.value['time'],
             bits=self.current_work.value['bits'],
             share_target=target,
@@ -405,7 +405,7 @@ class WorkerBridge(worker_interface.WorkerBridge):
         def got_response(header, user, coinbase_nonce):
             t0 = time.time()
             assert len(coinbase_nonce) == self.COINBASE_NONCE_LENGTH
-            new_packed_gentx = packed_gentx[:-self.COINBASE_NONCE_LENGTH-4] + coinbase_nonce + packed_gentx[-4:] if coinbase_nonce != '\0'*self.COINBASE_NONCE_LENGTH else packed_gentx
+            new_packed_gentx = packed_gentx[:-self.COINBASE_NONCE_LENGTH-4-4] + coinbase_nonce + packed_gentx[-4-4:] if coinbase_nonce != '\0'*self.COINBASE_NONCE_LENGTH else packed_gentx
             new_gentx = bitcoin_data.tx_type.unpack(new_packed_gentx) if coinbase_nonce != '\0'*self.COINBASE_NONCE_LENGTH else gentx
             if bitcoin_data.is_segwit_tx(gentx): # reintroduce witness data to the gentx produced by stratum miners
                 new_gentx['marker'] = 0
