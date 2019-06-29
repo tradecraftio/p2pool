@@ -115,7 +115,7 @@ class WorkerBridge(worker_interface.WorkerBridge):
                     bits=bb['bits'], # not always true
                     coinbaseflags='',
                     height=t['height'] + 1,
-                    timelock=self.median_time_past_of_block(bb['previous_block']),
+                    timelock=median_time_past_of_block(bb['previous_block']),
                     time=max(int(time.time() + 0.5), bb['timestamp'] + 1),
                     transactions=[],
                     transaction_hashes=[],
