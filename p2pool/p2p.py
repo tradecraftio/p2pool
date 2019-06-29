@@ -142,7 +142,7 @@ class Protocol(p2protocol.Protocol):
         ('best_share_hash', pack.PossiblyNoneType(0, pack.IntType(256))),
     ])
     def handle_version(self, version, services, addr_to, addr_from, nonce, sub_version, mode, best_share_hash):
-        print "Peer %s:%s says protocol version is %s, client version %s" % (addr_from['address'], addr_from['port'], version, sub_version)
+        # print "Peer %s:%s says protocol version is %s, client version %s" % (addr_from['address'], addr_from['port'], version, sub_version)
         if self.other_version is not None:
             raise PeerMisbehavingError('more than one version message')
         if version < getattr(self.node.net, 'MINIMUM_PROTOCOL_VERSION', 1400):
