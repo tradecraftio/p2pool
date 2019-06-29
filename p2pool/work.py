@@ -93,7 +93,15 @@ class WorkerBridge(worker_interface.WorkerBridge):
             print 'Got new merged mining work!'
         
         # COMBINE WORK
-        
+
+        def median_time_past_of_block(bb):
+            times = []
+            for _ in range(11):
+                times.append(bb['timestamp'])
+                bb = self.node.factory.conn.value.get_block_header(bb['previous_block'])
+            times.sort()
+            return times[6]
+
         self.current_work = variable.Variable(None)
         def compute_work():
             t = self.node.bitcoind_work.value
@@ -107,6 +115,7 @@ class WorkerBridge(worker_interface.WorkerBridge):
                     bits=bb['bits'], # not always true
                     coinbaseflags='',
                     height=t['height'] + 1,
+                    timelock=self.median_time_past_of_block(bb['previous_block']),
                     time=max(int(time.time() + 0.5), bb['timestamp'] + 1),
                     transactions=[],
                     transaction_hashes=[],
