@@ -94,13 +94,15 @@ class WorkerBridge(worker_interface.WorkerBridge):
         
         # COMBINE WORK
 
+        @defer.inlineCallbacks
         def median_time_past_of_block(bb):
             times = []
             for _ in range(11):
+                bb = yield bb
                 times.append(bb['timestamp'])
                 bb = self.node.factory.conn.value.get_block_header(bb['previous_block'])
             times.sort()
-            return times[6]
+            defer.returnValue(times[6])
 
         self.current_work = variable.Variable(None)
         def compute_work():
@@ -115,7 +117,7 @@ class WorkerBridge(worker_interface.WorkerBridge):
                     bits=bb['bits'], # not always true
                     coinbaseflags='',
                     height=t['height'] + 1,
-                    timelock=median_time_past_of_block(bb['previous_block']),
+                    timelock=median_time_past_of_block(self.node.factory.conn.value.get_block_header(bb['previous_block'])),
                     time=max(int(time.time() + 0.5), bb['timestamp'] + 1),
                     transactions=[],
                     transaction_hashes=[],
