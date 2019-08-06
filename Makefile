@@ -74,7 +74,7 @@ ${CACHE}/pyenv/pyenv-1.11.6-base.tar.gz: ${CACHE}/pyenv/virtualenv-1.11.6.tar.gz
 	tar -C "${PYENV}" --gzip -cf "$@" .
 	rm -rf "${PYENV}"
 
-${CACHE}/pyenv/pyenv-1.11.6-extras.tar.gz: ${CACHE}/pyenv/pyenv-1.11.6-base.tar.gz ${ROOT}/requirements.txt ${CONF}/requirements*.txt ${SYSROOT}/.stamp-openssl-h
+${CACHE}/pyenv/pyenv-1.11.6-extras.tar.gz: ${CACHE}/pyenv/pyenv-1.11.6-base.tar.gz ${ROOT}/requirements.txt ${CONF}/requirements*.txt ${SYSROOT}/.stamp-openssl-h ${SYSROOT}/.stamp-libffi-h
 	-rm -rf "${PYENV}"
 	mkdir -p "${PYENV}"
 	mkdir -p "${CACHE}"/pypi
@@ -98,6 +98,7 @@ ${CACHE}/pyenv/pyenv-1.11.6-extras.tar.gz: ${CACHE}/pyenv/pyenv-1.11.6-base.tar.
 	               "${CONF}"/requirements*.txt; do \
 	    CFLAGS="-I'${SYSROOT}'/include" \
 	    LDFLAGS="-L'${SYSROOT}'/lib" \
+	    PKG_CONFIG_PATH="${SYSROOT}/lib/pkgconfig" \
 	    "${PYENV}"/bin/python "${PYENV}"/bin/pip install \
 	        --download-cache="${CACHE}"/pypi \
 	        -r "$$reqfile" || exit 1; \
@@ -157,6 +158,43 @@ ${CACHE}/openssl/openssl-1.0.2r-pkg.tar.gz: ${CACHE}/openssl/openssl-1.0.2r.tar.
 .PHONY: openssl-pkg
 openssl-pkg: ${SYSROOT}/.stamp-openssl-h
 ${SYSROOT}/.stamp-openssl-h: ${CACHE}/openssl/openssl-1.0.2r-pkg.tar.gz
+	mkdir -p "${SYSROOT}"
+	tar -C "${SYSROOT}" --gzip -xf "$<"
+	touch "$@"
+
+# ===--------------------------------------------------------------------===
+
+${CACHE}/libffi/libffi-3.2.1.tar.gz:
+	mkdir -p ${CACHE}/libffi
+	curl -L 'ftp://sourceware.org/pub/libffi/libffi-3.2.1.tar.gz' >'$@' || { rm -f '$@'; exit 1; }
+
+${CACHE}/libffi/libffi-3.2.1-pkg.tar.gz: ${CACHE}/libffi/libffi-3.2.1.tar.gz
+	if [ -d "${SYSROOT}" ]; then \
+	    mv "${SYSROOT}" "${SYSROOT}"-bak; \
+	fi
+	mkdir -p "${SYSROOT}"
+	find "${SYSROOT}" -not -type d -print0 >"${ROOT}"/.pkglist
+
+	rm -rf "${ROOT}"/.build/libffi
+	mkdir -p "${ROOT}"/.build/libffi
+	tar -C "${ROOT}"/.build/libffi --strip-components 1 --gzip -xf "$<"
+	bash -c "cd '${ROOT}'/.build/libffi && ./configure \
+	    --prefix='${SYSROOT}'"
+	bash -c "cd '${ROOT}'/.build/libffi && make all install"
+	rm -rf "${ROOT}"/.build/libffi
+	-rmdir "${ROOT}"/.build
+
+	# Snapshot the package
+	cat "${ROOT}"/.pkglist | xargs -0 rm -rf
+	tar -C "${SYSROOT}" --gzip -cf "$@" .
+	rm -rf "${SYSROOT}"
+	if [ -d "${SYSROOT}"-bak ]; then \
+	    mv "${SYSROOT}"-bak "${SYSROOT}"; \
+	fi
+
+.PHONY: libffi-pkg
+libffi-pkg: ${SYSROOT}/.stamp-libffi-h
+${SYSROOT}/.stamp-libffi-h: ${CACHE}/libffi/libffi-3.2.1-pkg.tar.gz
 	mkdir -p "${SYSROOT}"
 	tar -C "${SYSROOT}" --gzip -xf "$<"
 	touch "$@"
