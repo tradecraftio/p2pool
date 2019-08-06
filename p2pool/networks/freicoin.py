@@ -19,7 +19,7 @@ MIN_TARGET = 0
 MAX_TARGET = 2**256//2**52 - 1
 PERSIST = True
 WORKER_PORT = 9638
-BOOTSTRAP_ADDRS = 'pool.freico.in asia-east1.gcp.pool.tradecraft.io asia-south1.gcp.pool.tradecraft.io australia-southeast1.gcp.pool.tradecraft.io europe-north1.gcp.pool.tradecraft.io northamerica-northeast1.gcp.pool.tradecraft.io southamerica-east1.gcp.pool.tradecraft.io us-west-2.aws.pool.tradecraft.io eu-west-1.aws.pool.tradecraft.io ap-northeast-1.aws.pool.traecraft.io'.split(' ')
+BOOTSTRAP_ADDRS = 'pool.freico.in asia-east1.gcp.pool.tradecraft.io asia-south1.gcp.pool.tradecraft.io australia-southeast1.gcp.pool.tradecraft.io europe-north1.gcp.pool.tradecraft.io northamerica-northeast1.gcp.pool.tradecraft.io southamerica-east1.gcp.pool.tradecraft.io us-west-2.aws.pool.tradecraft.io eu-west-1.aws.pool.tradecraft.io ap-northeast-1.aws.pool.tradecraft.io'.split(' ')
 ANNOUNCE_CHANNEL = '#p2pool-frc'
 VERSION_CHECK = lambda v: None if 12010000 <= v else 'Freicoin version too old. Upgrade to v12.1 or newer!'
 VERSION_WARNING = lambda v: None
