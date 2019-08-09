@@ -334,6 +334,7 @@ class WorkerBridge(worker_interface.WorkerBridge):
                     pubkey_hash=pubkey_hash,
                     subsidy=self.current_work.value['subsidy'],
                     locktime=self.current_work.value['locktime'],
+                    height=self.current_work.value['height'],
                     donation=math.perfect_round(65535*self.donation_percentage/100),
                     stale_info=(lambda (orphans, doas), total, (orphans_recorded_in_chain, doas_recorded_in_chain):
                         'orphan' if orphans > orphans_recorded_in_chain else

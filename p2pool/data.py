@@ -14,13 +14,6 @@ import p2pool
 from p2pool.bitcoin import data as bitcoin_data, script, sha256
 from p2pool.util import math, forest, pack
 
-def parse_bip0034(coinbase):
-    _, opdata = script.parse(coinbase).next()
-    bignum = pack.IntType(len(opdata)*8).unpack(opdata)
-    if ord(opdata[-1]) & 0x80:
-        bignum = -bignum
-    return (bignum,)
-
 # hashlink
 
 hash_link_type = pack.ComposedType([
@@ -107,6 +100,7 @@ class BaseShare(object):
                 ('pubkey_hash', pack.IntType(160)),
                 ('subsidy', pack.IntType(64)),
                 ('locktime', pack.IntType(32)),
+                ('height', pack.IntType(32)),
                 ('donation', pack.IntType(16)),
                 ('stale_info', pack.EnumType(pack.IntType(8), dict((k, {0: None, 253: 'orphan', 254: 'doa'}.get(k, 'unk%i' % (k,))) for k in xrange(256)))),
                 ('desired_version', pack.VarIntType()),
@@ -290,7 +284,7 @@ class BaseShare(object):
         ref_height = 0
         if 'FRC' in net.PARENT.SYMBOL:
             tx_version = 2
-            ref_height = parse_bip0034(share_data['coinbase'])[0]
+            ref_height = share_data['height']
 
         if previous_share != None and desired_timestamp > previous_share.timestamp + 180:
             print "Warning: Previous share's timestamp is %i seconds old." % int(desired_timestamp - previous_share.timestamp)
@@ -389,7 +383,7 @@ class BaseShare(object):
 
         ref_height = 0
         if 'FRC' in net.PARENT.SYMBOL:
-            ref_height = parse_bip0034(self.share_info['share_data']['coinbase'])[0]
+            ref_height = self.share_info['share_data']['height']
         
         self.share_data = self.share_info['share_data']
         self.max_target = self.share_info['max_bits'].target
