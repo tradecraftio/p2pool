@@ -117,6 +117,17 @@ def getwork(bitcoind, use_getblocktemplate=False, txidcache={}, feecache={}, fee
         work['height'] = (yield bitcoind.rpc_getblock(work['previousblockhash']))['height'] + 1
     elif p2pool.DEBUG:
         assert work['height'] == (yield bitcoind.rpc_getblock(work['previousblockhash']))['height'] + 1
+    blockfinal = []
+    if 'blockfinal' in work:
+        assert 'prevout' in work['blockfinal']
+        for prevout in work['blockfinal']['prevout']:
+            assert(x in prevout for x in ('txid','vout','amount'))
+            txid = pack.IntType(256).unpack(prevout['txid'].decode('hex'))
+            vout = int(prevout['vout'])
+            amount = int(prevout['amount'])
+            blockfinal.append( dict(txid=txid, vout=vout, amount=amount) )
+    elif work['height']%144 == 0 and 'rules' in work and 'blockfinal' in work['rules']:
+        blockfinal.append( dict(txid=0, vout=0xffffffff, amount=0) )
 
     t1 = time.time()
     if p2pool.BENCH: print "%8.3f ms for helper.py:getwork(). Cache: %i hits %i misses, %i known_tx %i unknown %i cached" % ((t1 - t0)*1000., cachehits, cachemisses, knownhits, knownmisses, len(txidcache))
@@ -132,6 +143,7 @@ def getwork(bitcoind, use_getblocktemplate=False, txidcache={}, feecache={}, fee
         coinbaseflags=work['coinbaseflags'].decode('hex') if 'coinbaseflags' in work else ''.join(x.decode('hex') for x in work['coinbaseaux'].itervalues()) if 'coinbaseaux' in work else '',
         locktime=work['locktime'],
         height=work['height'],
+        blockfinal=blockfinal,
         rules=work.get('rules', []),
         last_update=time.time(),
         use_getblocktemplate=use_getblocktemplate,

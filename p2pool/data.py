@@ -101,6 +101,11 @@ class BaseShare(object):
                 ('subsidy', pack.IntType(64)),
                 ('locktime', pack.IntType(32)),
                 ('height', pack.IntType(32)),
+                ('blockfinal', pack.ListType(pack.ComposedType([
+                    ('txid', pack.IntType(256)),
+                    ('vout', pack.IntType(32)),
+                    ('amount', pack.IntType(64)),
+                ]))),
                 ('donation', pack.IntType(16)),
                 ('stale_info', pack.EnumType(pack.IntType(8), dict((k, {0: None, 253: 'orphan', 254: 'doa'}.get(k, 'unk%i' % (k,))) for k in xrange(256)))),
                 ('desired_version', pack.VarIntType()),
