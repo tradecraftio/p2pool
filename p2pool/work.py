@@ -322,14 +322,17 @@ class WorkerBridge(worker_interface.WorkerBridge):
                     )
         
         if True:
+            coinbase = script.create_push_script([
+                    self.current_work.value['height'],
+                    ] + ([mm_data] if mm_data else []) + self.args.coinb_texts
+                ) + self.current_work.value['coinbaseflags']
+            while len(coinbase) < 2:
+                coinbase = coinbase + '\x00'
             share_info, gentx, other_transaction_hashes, get_share = share_type.generate_transaction(
                 tracker=self.node.tracker,
                 share_data=dict(
                     previous_share_hash=self.node.best_share_var.value,
-                    coinbase=(script.create_push_script([
-                        self.current_work.value['height'],
-                        ] + ([mm_data] if mm_data else []) + self.args.coinb_texts
-                    ) + self.current_work.value['coinbaseflags'])[:100],
+                    coinbase=coinbase,
                     nonce=random.randrange(2**32),
                     pubkey_hash=pubkey_hash,
                     subsidy=self.current_work.value['subsidy'],
