@@ -67,13 +67,13 @@ def create_push_script(datums): # datums can be ints or strs
         if len(datum) < 76:
             res.append(chr(len(datum)))
         elif len(datum) <= 0xff:
-            res.append(76)
+            res.append(chr(76))
             res.append(chr(len(datum)))
         elif len(datum) <= 0xffff:
-            res.append(77)
+            res.append(chr(77))
             res.append(pack.IntType(16).pack(len(datum)))
         elif len(datum) <= 0xffffffff:
-            res.append(78)
+            res.append(chr(78))
             res.append(pack.IntType(32).pack(len(datum)))
         else:
             raise ValueError('string too long')
