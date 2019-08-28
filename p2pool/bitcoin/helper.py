@@ -5,7 +5,7 @@ from twisted.internet import defer
 
 import p2pool
 from p2pool.bitcoin import data as bitcoin_data
-from p2pool.util import deferral, jsonrpc
+from p2pool.util import deferral, jsonrpc, pack
 txlookup = {}
 
 @deferral.retry('Error while checking Bitcoin connection:', 1)
@@ -122,7 +122,7 @@ def getwork(bitcoind, use_getblocktemplate=False, txidcache={}, feecache={}, fee
         assert 'prevout' in work['blockfinal']
         for prevout in work['blockfinal']['prevout']:
             assert(x in prevout for x in ('txid','vout','amount'))
-            txid = pack.IntType(256).unpack(prevout['txid'].decode('hex'))
+            txid = pack.IntType(256).unpack(prevout['txid'].decode('hex')[::-1])
             vout = int(prevout['vout'])
             amount = int(prevout['amount'])
             blockfinal.append( dict(txid=txid, vout=vout, amount=amount) )
