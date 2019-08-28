@@ -11,7 +11,7 @@ import traceback
 from twisted.python import log
 
 import p2pool
-from p2pool.bitcoin import data as bitcoin_data, script, sha256
+from p2pool.bitcoin import data as bitcoin_data, script as bitcoin_script, sha256
 from p2pool.util import math, forest, pack
 
 # hashlink
@@ -300,13 +300,6 @@ class BaseShare(object):
         if segwit_activated:
             share_info['segwit_data'] = segwit_data
         
-        extra_txout = []
-        if share_data['blockfinal']:
-            if len(share_data['blockfinal']) == 1:
-                prevout = share_data['blockfinal'][0]
-                if prevout['txid'] == 0 and prevout['vout'] == 0xffffffff and prevout['amount'] == 0:
-                    extra_txout.append(dict(value=0, script='\x51'))
-
         gentx = dict(
             version=tx_version,
             tx_ins=[dict(
@@ -314,13 +307,16 @@ class BaseShare(object):
                 sequence=None,
                 script=share_data['coinbase'],
             )],
-            tx_outs=extra_txout +
-               ([dict(value=0, script='\x6a\x24\xaa\x21\xa9\xed' + pack.IntType(256).pack(witness_commitment_hash))] if segwit_activated else []) +
+            tx_outs=([dict(value=0, script='\x6a\x24\xaa\x21\xa9\xed' + pack.IntType(256).pack(witness_commitment_hash))] if segwit_activated else []) +
                 [dict(value=amounts[script], script=script) for script in dests if amounts[script] or script == DONATION_SCRIPT] +
                 [dict(value=0, script='\x6a\x28' + cls.get_ref_hash(net, share_info, ref_merkle_link) + pack.IntType(64).pack(last_txout_nonce))],
             lock_time=share_data['locktime'],
             lock_height=ref_height,
         )
+        if len(blockfinal) == 1:
+            prevout = share_data['blockfinal'][0]
+            if prevout['txid'] == 0 and prevout['vout'] == 0xffffffff and prevout['amount'] == 0:
+                gentx['tx_outs'] = [dict(value=share_data['subsidy'], script=bitcoin_script.create_push_script([cls.gentx_before_refhash + pack.IntType(256).pack(0) + pack.IntType(64).pack(0)]))]
         if segwit_activated:
             gentx['marker'] = 0
             gentx['flag'] = 1
