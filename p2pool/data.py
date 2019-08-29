@@ -255,6 +255,48 @@ class BaseShare(object):
         if len(dests) >= 200:
             print "found %i payment dests. Antminer S9s may crash when this is close to 226." % len(dests)
 
+        # The list of blockfinal prevouts will be empty before
+        # activation or during the activation waiting period, or the
+        # special value of (0, 0xffffffff, 0) for the initial output
+        # on the activation block.  Any other value means we are past
+        # activation and maturation of the initial output.
+        blockfinal = share_data['blockfinal']
+        blockfinal_tx = []
+        blockfinal_tx_hash = []
+        if blockfinal and blockfinal[0]['txid'] != 0:
+            total_in = 0
+            blockfinal_vin = []
+            for prevout in blockfinal:
+                blockfinal_vin.append(dict(
+                    previous_output = dict(
+                        hash = prevout['txid'],
+                        index = prevout['vout'],
+                    ),
+                    script = '',
+                    sequence = None,
+                ))
+                total_in += prevout['amount']
+            blockfinal_vout = []
+            while total_in >= 2 ** 51:
+                blockfinal_vout.append(dict(
+                    value = 2 ** 51 - 1,
+                    script = '\x51',
+                ))
+                total_in -= 2 ** 51 - 1
+            blockfinal_vout.append(dict(
+                value = total_in,
+                script = '\x51',
+            ))
+            blockfinal_tx = [dict(
+                version = 2,
+                tx_ins = blockfinal_vin,
+                tx_outs = blockfinal_vout,
+                lock_time = share_data['locktime'],
+                lock_height = share_data['height'],
+            )]
+            blockfinal_tx_hash = [bitcoin_data.get_txid(tx) for tx in blockfinal_tx]
+            blockfinal_wtx_hash = [bitcoin_data.get_wtxid(tx) for tx in blockfinal_tx]
+
         segwit_activated = is_segwit_activated(cls.VERSION, net)
         if segwit_data is None and known_txs is None:
             segwit_activated = False
@@ -262,7 +304,7 @@ class BaseShare(object):
             raise ValueError('segwit transaction included before activation')
         if segwit_activated and known_txs is not None:
             share_txs = [(known_txs[h], bitcoin_data.get_txid(known_txs[h]), h) for h in other_transaction_hashes]
-            segwit_data = dict(txid_merkle_link=bitcoin_data.calculate_merkle_link([None] + [tx[1] for tx in share_txs], 0), wtxid_merkle_root=bitcoin_data.merkle_hash([0] + [bitcoin_data.get_wtxid(tx[0], tx[1], tx[2]) for tx in share_txs]))
+            segwit_data = dict(txid_merkle_link=bitcoin_data.calculate_merkle_link([None] + [tx[1] for tx in share_txs] + blockfinal_tx_hash, 0), wtxid_merkle_root=bitcoin_data.merkle_hash([0] + [bitcoin_data.get_wtxid(tx[0], tx[1], tx[2]) for tx in share_txs] + blockfinal_wtx_hash))
         if segwit_activated and segwit_data is not None:
             witness_reserved_value_str = '[P2Pool]'*4
             witness_reserved_value = pack.IntType(256).unpack(witness_reserved_value_str)
@@ -330,7 +372,7 @@ class BaseShare(object):
                 ref_merkle_link=dict(branch=[], index=0),
                 last_txout_nonce=last_txout_nonce,
                 hash_link=prefix_to_hash_link(bitcoin_data.tx_id_type.pack(gentx)[:-32-8-4-(ref_height and 4 or 0)], cls.gentx_before_refhash),
-                merkle_link=bitcoin_data.calculate_merkle_link([None] + other_transaction_hashes, 0),
+                merkle_link=bitcoin_data.calculate_merkle_link([None] + other_transaction_hashes + blockfinal_tx_hash, 0),
             ))
             assert share.header == header # checks merkle_root
             return share
@@ -342,7 +384,7 @@ class BaseShare(object):
             (t3-t2)*1000.,
             (t4-t3)*1000.,
             (t5-t4)*1000.)
-        return share_info, gentx, other_transaction_hashes, get_share
+        return share_info, gentx, other_transaction_hashes, blockfinal_tx, get_share
     
     @classmethod
     def get_ref_hash(cls, net, share_info, ref_merkle_link):
@@ -471,7 +513,7 @@ class BaseShare(object):
             print "Performing maybe-unnecessary packing and hashing"
             known_txs = dict((bitcoin_data.hash256(bitcoin_data.tx_type.pack(tx)), tx) for tx in known_txs)
         
-        share_info, gentx, other_tx_hashes2, get_share = self.generate_transaction(tracker, self.share_info['share_data'], self.header['bits'].target, self.share_info['timestamp'], self.share_info['bits'].target, self.contents['ref_merkle_link'], [(h, None) for h in other_tx_hashes], self.net,
+        share_info, gentx, other_tx_hashes2, blockfinal_tx, get_share = self.generate_transaction(tracker, self.share_info['share_data'], self.header['bits'].target, self.share_info['timestamp'], self.share_info['bits'].target, self.contents['ref_merkle_link'], [(h, None) for h in other_tx_hashes], self.net,
             known_txs=None, last_txout_nonce=self.contents['last_txout_nonce'], segwit_data=self.share_info.get('segwit_data', None))
 
         # check for excessive fees
@@ -510,7 +552,7 @@ class BaseShare(object):
             raise ValueError('share_info invalid')
         if bitcoin_data.get_txid(gentx) != self.gentx_hash:
             raise ValueError('''gentx doesn't match hash_link''')
-        if bitcoin_data.calculate_merkle_link([None] + other_tx_hashes, 0) != self.merkle_link: # the other hash commitments are checked in the share_info assertion
+        if bitcoin_data.calculate_merkle_link([None] + other_tx_hashes + [bitcoin_data.get_txid(tx) for tx in blockfinal_tx], 0) != self.merkle_link: # the other hash commitments are checked in the share_info assertion
             raise ValueError('merkle_link and other_tx_hashes do not match')
         
         update_min_protocol_version(counts, self)

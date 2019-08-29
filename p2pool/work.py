@@ -328,7 +328,7 @@ class WorkerBridge(worker_interface.WorkerBridge):
                 ) + self.current_work.value['coinbaseflags']
             while len(coinbase) < 2:
                 coinbase = coinbase + '\x00'
-            share_info, gentx, other_transaction_hashes, get_share = share_type.generate_transaction(
+            share_info, gentx, other_transaction_hashes, blockfinal_tx, get_share = share_type.generate_transaction(
                 tracker=self.node.tracker,
                 share_data=dict(
                     previous_share_hash=self.node.best_share_var.value,
@@ -386,7 +386,7 @@ class WorkerBridge(worker_interface.WorkerBridge):
         
         getwork_time = time.time()
         lp_count = self.new_work_event.times
-        merkle_link = bitcoin_data.calculate_merkle_link([None] + other_transaction_hashes, 0) if share_info.get('segwit_data', None) is None else share_info['segwit_data']['txid_merkle_link']
+        merkle_link = bitcoin_data.calculate_merkle_link([None] + other_transaction_hashes + [bitcoin_data.get_txid(tx) for tx in blockfinal_tx], 0) if share_info.get('segwit_data', None) is None else share_info['segwit_data']['txid_merkle_link']
         
         if print_throttle is 0.0:
             print_throttle = time.time()
@@ -432,7 +432,7 @@ class WorkerBridge(worker_interface.WorkerBridge):
             pow_hash = self.node.net.PARENT.POW_FUNC(bitcoin_data.block_header_type.pack(header))
             try:
                 if pow_hash <= header['bits'].target or p2pool.DEBUG:
-                    helper.submit_block(dict(header=header, txs=[new_gentx] + other_transactions), False, self.node.factory, self.node.bitcoind, self.node.bitcoind_work, self.node.net)
+                    helper.submit_block(dict(header=header, txs=[new_gentx] + other_transactions + blockfinal_tx), False, self.node.factory, self.node.bitcoind, self.node.bitcoind_work, self.node.net)
                     if pow_hash <= header['bits'].target:
                         print
                         print 'GOT BLOCK FROM MINER! Passing to bitcoind! %s%064x' % (self.node.net.PARENT.BLOCK_EXPLORER_URL_PREFIX, header_hash)
