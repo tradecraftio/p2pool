@@ -105,18 +105,31 @@ class WorkerBridge(worker_interface.WorkerBridge):
             defer.returnValue(times[6])
 
         self.current_work = variable.Variable(None)
+        @defer.inlineCallbacks
         def compute_work():
             t = self.node.bitcoind_work.value
             bb = self.node.best_block_header.value
             if bb is not None and bb['previous_block'] == t['previous_block'] and self.node.net.PARENT.POW_FUNC(bitcoin_data.block_header_type.pack(bb)) <= t['bits'].target:
-                print 'Skipping from block %x to block %x!' % (bb['previous_block'],
-                    bitcoin_data.hash256(bitcoin_data.block_header_type.pack(bb)))
+                bbhash = bitcoin_data.hash256(bitcoin_data.block_header_type.pack(bb))
+                print 'Skipping from block %x to block %x!' % (bb['previous_block'], bbhash)
+                blockfinal = []
+                if t['blockfinal']:
+                    bblk = yield bitcoind.rpc_getblock(bbhash[::-1]).encode('hex')
+                    prev_final_tx = yield bitcoind.rpc_getrawtransaction(bblk['tx'][-1], 1)
+                    for n,prevout in enumerate(prev_final_tx['vout']):
+                        blockfinal.append(dict(
+                            txid = pack.IntType(256).unpack(prev_final_tx['txid'].decode('hex')[::-1]),
+                            vout = n,
+                            amount = int(((prevout["value"] * 2**20 - prevout["value"]) / 2**20) * 10**8)
+                        ))
+                    print(blockfinal)
                 t = dict(
                     version=bb['version'],
-                    previous_block=bitcoin_data.hash256(bitcoin_data.block_header_type.pack(bb)),
+                    previous_block=bbhash,
                     bits=bb['bits'], # not always true
                     coinbaseflags='',
                     height=t['height'] + 1,
+                    blockfinal=blockfinal,
                     timelock=median_time_past_of_block(self.node.factory.conn.value.get_block_header(bb['previous_block'])),
                     time=max(int(time.time() + 0.5), bb['timestamp'] + 1),
                     transactions=[],
