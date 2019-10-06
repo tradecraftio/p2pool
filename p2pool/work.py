@@ -130,7 +130,7 @@ class WorkerBridge(worker_interface.WorkerBridge):
                     coinbaseflags='',
                     height=t['height'] + 1,
                     blockfinal=blockfinal,
-                    timelock=median_time_past_of_block(self.node.factory.conn.value.get_block_header(bb['previous_block'])),
+                    locktime=median_time_past_of_block(self.node.factory.conn.value.get_block_header(bb['previous_block'])),
                     time=max(int(time.time() + 0.5), bb['timestamp'] + 1),
                     transactions=[],
                     transaction_hashes=[],
