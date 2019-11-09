@@ -23,7 +23,7 @@ BOOTSTRAP_ADDRS = 'pool.freico.in asia-east1.gcp.pool.tradecraft.io asia-south1.
 ANNOUNCE_CHANNEL = '#p2pool-frc'
 VERSION_CHECK = lambda v: None if 12010000 <= v else 'Freicoin version too old. Upgrade to v12.1 or newer!'
 VERSION_WARNING = lambda v: None
-SOFTFORKS_REQUIRED = set()
+SOFTFORKS_REQUIRED = set(['bip34', 'bip66', 'locktime', 'blockfinal'])
 MINIMUM_PROTOCOL_VERSION = 3301
 NEW_MINIMUM_PROTOCOL_VERSION = 3301
 BLOCK_MAX_SIZE = 1000000
