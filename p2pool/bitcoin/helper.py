@@ -138,7 +138,7 @@ def getwork(bitcoind, use_getblocktemplate=False, txidcache={}, feecache={}, fee
         transaction_hashes=txhashes,
         transaction_fees=[x.get('fee', None) if isinstance(x, dict) else None for x in work['transactions']],
         subsidy=work['coinbasevalue'],
-        time=work['time'] if 'time' in work else work['curtime'],
+        timestamp=work['timestamp'] if 'timestamp' in work else work['curtime'],
         bits=bitcoin_data.FloatingIntegerType().unpack(work['bits'].decode('hex')[::-1]) if isinstance(work['bits'], (str, unicode)) else bitcoin_data.FloatingInteger(work['bits']),
         coinbaseflags=work['coinbaseflags'].decode('hex') if 'coinbaseflags' in work else ''.join(x.decode('hex') for x in work['coinbaseaux'].itervalues()) if 'coinbaseaux' in work else '',
         locktime=work['locktime'],
